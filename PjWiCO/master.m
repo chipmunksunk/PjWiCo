@@ -9,9 +9,9 @@
 clearvars
 close all
 
-K = 3; % communication users
-E = 2; % potential sensing targets
-N = 5; T = 30; dt = T/N; % Total time T, time slots N, time slot duration dt
+K = 2; % communication users
+E = 1; % potential sensing targets
+N = 2; T = 30; dt = T/N; % Total time T, time slots N, time slot duration dt
 M = 2; % number of UAV antennas
 
 optim_var = solve_sdp(K, E ,N, M);

@@ -10,14 +10,17 @@ function optim_var = solve_sdp(K, E ,N, M)
 %   M - # of antennas
 
 P_hover = ones([1 N])*1e-3; % Power needed for hovering per time slot
-P_max = 5; % maximum power of UAV
-v = zeros([2 N]); % UAV velocity for each time slot
-q = zeros([2 N]); % UAV position for each time slot
-altitude = 10;
-tau = P_max*100; % factor for forcing a to be binary
-R_min = 0; % minium avarage data rate
-snr_echo_min = 4e-2; % minimum comm sinr of 0 dB
-Ns_max = 5; % maximum sensing time slots
+P_max = 10; % maximum power of UAV in Watts
+v = zeros([N 2]); % UAV velocity for each time slot
+q = zeros([N 2]); % UAV position for each time slot
+altitude = 40; 
+sigma_e2 = 1e-8; % target noise power in Watts
+sigma_k2 = sigma_e2;
+beta_o = 1e-3;
+tau = P_max*10; % factor for forcing a to be binary
+R_min = 1e-2; % minium avarage data rate
+snr_echo_min = 0; % minimum comm sinr of 0 dB
+Ns_max = 1; % maximum sensing time slots
 d_e = [-5 5; 10 10]; % sensing target locations
 d_k = [0 5; 20 20; -10 10]; % com target locations
 D = 50; % maximum distance to sensing target
@@ -28,8 +31,9 @@ a_diff = 1; mu_diff = 1; phi_diff = 1; % variables for SCA of taylor approx
 H = repmat(eye(M),[1 1 K N]); % channel matrix
 for n =1:N
     for k = 1:K
-        sv = steer_vec(q(:,n), d_k(k,:), M, altitude);
-        H(:,:,k,n) = sv'*sv; 
+        hk = steer_vec(q(n,:), d_k(k,:), M, altitude) * beta_o / sqrt( norm( q(n,:) - d_k(k,:) )^2 + altitude^2 );
+        H(:,:,k,n) = hk'*hk;
+        H(:,:,k,n) = H(:,:,k,n) * 1e+9;
     end
 end
 
@@ -72,8 +76,9 @@ while (a_diff > 1e-3 || mu_diff > 1e-3 || phi_diff > 1e-3)
         for e = 1:E
           snr_echo_temp = 0;
             for n = 1:N
-                sv = steer_vec(q(:,n), d_e(e,:), M, altitude);
-                snr_echo_temp = snr_echo_temp + sv * sum(W_t(:,:,:,e,n), 3) * sv' / sqrt( norm(q(:,n)-d_e(e,:)).^2 + altitude.^2 ).^4;
+                sv = steer_vec(q(n,:), d_e(e,:), M, altitude);
+                % snr_echo_temp = snr_echo_temp + beta_o^2 * sv * sum(W_t(:,:,:,e,n), 3) * sv' / ( 16*pi*sigma_e2*sqrt( norm(q(n,:)-d_e(e,:))^2 + altitude^2 )^4 );
+                snr_echo_temp = snr_echo_temp + sv * sum(xor, 3) * sv' / ( sigma_e2 * sqrt( norm(q(n,:)-d_e(e,:))^2 + altitude^2 )^4 );
             end
             snr_echo(e) = snr_echo_temp;
         end
@@ -94,14 +99,14 @@ while (a_diff > 1e-3 || mu_diff > 1e-3 || phi_diff > 1e-3)
                 end
             end
         end 
-%             P_t_per_time <= P_max; % C1 
+            % P_t_per_time <= P_max; % C1 
             P_rec(:) >= nu(:); % C2a
-%             P_int(:) <= phi(:); % C2b
-            1/N * sum_log(1 + mu, 2) >= R_min*ones([K 1]); % C2c
-%             snr_echo >= snr_echo_min; % C4
-%             sum(a, 1) <= 1; % C5
-%             sum(a, 2) <= Ns_max; % C6
-%             0 <= a(:) <= 1; % C11a
+            P_int(:) <= phi(:); % C2b
+            1/N * sum_log(1 + mu, 2) / log(2) >= R_min*ones([K 1]); % C2c
+            snr_echo >= snr_echo_min; % C4
+            % sum(a, 1) <= 1; % C5
+            % sum(a, 2) <= Ns_max; % C6
+            % 0 <= a(:) <= 1; % C11a
         
             
        
