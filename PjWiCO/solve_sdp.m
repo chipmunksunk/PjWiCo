@@ -78,7 +78,7 @@ while (a_diff > 1e-3 || mu_diff > 1e-3 || phi_diff > 1e-3)
             for n = 1:N
                 sv = steer_vec(q(n,:), d_e(e,:), M, altitude);
                 % snr_echo_temp = snr_echo_temp + beta_o^2 * sv * sum(W_t(:,:,:,e,n), 3) * sv' / ( 16*pi*sigma_e2*sqrt( norm(q(n,:)-d_e(e,:))^2 + altitude^2 )^4 );
-                snr_echo_temp = snr_echo_temp + sv * sum(xor, 3) * sv' / ( sigma_e2 * sqrt( norm(q(n,:)-d_e(e,:))^2 + altitude^2 )^4 );
+                snr_echo_temp = snr_echo_temp + sv * sum(W_t(:,:,:,e,n), 3) * sv' / ( sigma_e2 * sqrt( norm(q(n,:)-d_e(e,:))^2 + altitude^2 )^4 );
             end
             snr_echo(e) = snr_echo_temp;
         end
